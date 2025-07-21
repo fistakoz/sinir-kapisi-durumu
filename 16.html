@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sınır Kapısı Durumu</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+    }
+    .form-container {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .form-container h2 {
+      text-align: center;
+      color: #003366;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    #output {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="form-container">
+  <h2>Sınır Kapısı Durumu</h2>
+
+  <label for="kapiname">Kapı Seçiniz</label>
+  <select id="kapiname">
+    <option value="ipsala">İpsala</option>
+    <option value="kipi">Kipi</option>
+    <option value="pazarkule">Pazarkule</option>
+    <option value="kestanelik">Kestanelik</option>
+    <option value="kapikule">Kapıkule</option>
+    <option value="bgkapikule">BgKapıkule</option>
+    <option value="hamzabeyli">Hamzabeyli</option>
+    <option value="lesovo">Lesovo</option>
+    <option value="derekoy">Dereköy</option>
+    <option value="tirnovacik">Tırnovacık</option>
+  </select>
+
+  <label for="waitTime">Bekleme Süresi</label>
+  <input type="number" id="waitTime" placeholder="Örn: 2 (saat) veya 20 (dakika)" />
+
+  <button onclick="generateOutput()">Durumu Göster</button>
+  <button onclick="downloadPng()">Instagram PNG</button>
+
+  <div id="output"></div>
+</div>
+
+<script>
+  const countryMap = {
+    ipsala: "turkiye",
+    kipi: "yunanistan",
+    pazarkule: "turkiye",
+    kestanelik: "yunanistan",
+    kapikule: "turkiye",
+    bgkapikule: "bulgaristan",
+    hamzabeyli: "turkiye",
+    lesovo: "bulgaristan",
+    derekoy: "turkiye",
+    tirnovacik: "bulgaristan"
+  };
+
+  const flagUrls = {
+    turkiye: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/960px-Flag_of_Turkey.svg.png",
+    yunanistan: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Flag_of_Greece.svg/320px-Flag_of_Greece.svg.png",
+    bulgaristan: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Flag_of_Bulgaria.svg/320px-Flag_of_Bulgaria.svg.png"
+  };
+
+  function generateOutput() {
+    const kapiname = document.getElementById("kapiname").value;
+    const waitRaw = parseFloat(document.getElementById("waitTime").value);
+    const isMinute = waitRaw >= 15;
+    const waitText = isMinute ? `${Math.round(waitRaw)} dakika` : `${Math.round(waitRaw)} saat`;
+
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(Math.floor(now.getMinutes() / 5) * 5).padStart(2, '0');
+    const formattedTime = `${day}.${month}.${year} ${hour}:${minute}`;
+    const instagram = "@" + kapiname.toLowerCase() + "gecis";
+
+    document.getElementById("output").innerHTML = `
+      <p><strong>${kapiname.toUpperCase()}</strong></p>
+      <p>Bekleme Süresi: ${waitText}</p>
+      <p><strong>Tarih: ${formattedTime}</strong></p>
+      <p><strong>${instagram}</strong></p>
+    `;
+    document.getElementById("output").style.display = "block";
+  }
+
+  function downloadPng() {
+    const kapiname = document.getElementById("kapiname").value;
+    const waitRaw = parseFloat(document.getElementById("waitTime").value);
+    const isMinute = waitRaw >= 15;
+    const waitText = isMinute ? `${Math.round(waitRaw)} dakika` : `${Math.round(waitRaw)} saat`;
+
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(Math.floor(now.getMinutes() / 5) * 5).padStart(2, '0');
+    const formattedTime = `${day}.${month}.${year} ${hour}:${minute}`;
+    const instagram = "@" + kapiname.toLowerCase() + "gecis";
+
+    const country = countryMap[kapiname.toLowerCase()];
+    const flagUrl = flagUrls[country];
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 850;
+    canvas.height = 850;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#fdf8f4";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const flag = new Image();
+    flag.crossOrigin = "anonymous";
+    flag.src = flagUrl;
+
+    flag.onload = function () {
+      const spacing = 60;
+      const flagHeight = 66;
+      const titleHeight = 48 + 48;
+      const ovalHeight = 90;
+      const timeHeight = 36;
+      const instaHeight = 26;
+
+      const totalHeight = flagHeight + spacing + titleHeight + spacing + ovalHeight + spacing + timeHeight + 50 + instaHeight;
+      let baseY = (canvas.height - totalHeight) / 2;
+
+      ctx.drawImage(flag, (canvas.width - 100) / 2, baseY, 100, flagHeight);
+      baseY += flagHeight + spacing;
+
+      ctx.fillStyle = "black";
+      ctx.font = "bold 48px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(kapiname.toUpperCase(), 425, baseY);
+      baseY += 48;
+      ctx.fillText("SINIR KAPISI", 425, baseY);
+      baseY += spacing;
+
+      let bgColor = "#4caf50";
+      if (!isMinute) {
+        if (waitRaw >= 4) bgColor = "#880000";
+        else if (waitRaw >= 3) bgColor = "#f44336";
+        else if (waitRaw >= 2) bgColor = "#ffc107";
+      }
+
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.roundRect(250, baseY, 350, ovalHeight, 40);
+      ctx.fill();
+
+      ctx.fillStyle = "black";
+      ctx.font = "bold 56px Arial";
+      ctx.fillText(waitText, 425, baseY + ovalHeight / 2 + 20);
+      baseY += ovalHeight + spacing;
+
+      ctx.font = "bold 36px Arial";
+      ctx.fillText(formattedTime, 425, baseY);
+      baseY += 50;
+
+      ctx.font = "bold 26px Arial";
+      ctx.fillText(instagram, 425, baseY);
+
+      const link = document.createElement("a");
+      link.download = "sinir_durumu_instagram.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    };
+  }
+</script>
+
+</body>
+</html>
