@@ -1,0 +1,1 @@
+# sinir-kapisi-durumu
