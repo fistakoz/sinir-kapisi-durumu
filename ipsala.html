@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>İpsala Kamera Galerisi</title>
+  <title>İpsala & Pazarkule Kamera Galerisi</title>
   <style>
     :root {
       --bg: #0b1220;
@@ -20,7 +20,7 @@
       background: linear-gradient(180deg, #0b1220, #0c1526 30%, #0e1a2f 70%);
       color: #e8f0ff;
     }
-    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
     header { display:flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
     header h1 { font-size: 20px; margin: 8px 0; font-weight: 700; letter-spacing: .2px; }
     .controls { display:flex; gap: 8px; flex-wrap: wrap; }
@@ -30,38 +30,50 @@
     .btn.primary:hover { border-color: #4da3ff; box-shadow: 0 0 0 2px #1a2b49 inset; }
     .status { font-size: 12px; color: var(--muted); }
 
+    .legend { display:flex; gap: 8px; align-items:center; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+    .dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
+    .dot.ipsala { background:#4da3ff; }
+    .dot.pazarkule { background:#19c37d; }
+
     .grid { display: grid; gap: 12px; margin-top: 14px; }
     @media (min-width: 420px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 820px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 900px) { .grid { grid-template-columns: repeat(3, 1fr); } }
 
     .card { background: var(--card); border: 1px solid #1a2a46; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,.25); display:flex; flex-direction: column; }
-    .card header { padding: 10px 12px; border-bottom: 1px solid #1a2a46; justify-content: space-between; }
-    .title { font-size: 14px; font-weight: 700; letter-spacing: .3px; }
+    .card header { padding: 10px 12px; border-bottom: 1px solid #1a2a46; justify-content: space-between; display:flex; align-items:center; }
+    .title { font-size: 14px; font-weight: 700; letter-spacing: .3px; display:flex; gap:8px; align-items:center; }
+    .tag { font-size: 11px; padding:2px 6px; border-radius: 999px; border:1px solid #2a3a5c; }
+    .tag.ipsala { border-color:#2e558a; background:#12233e; color:#cfe3ff; }
+    .tag.pazarkule { border-color:#2a5d4b; background:#0f2a22; color:#cdf1e2; }
     .meta { font-size: 12px; color: var(--muted); }
 
-    .media { position: relative; background: #0a1322; aspect-ratio: 16/9; display: grid; place-items:center; }
+    .media { position: relative; background: #0a1322; aspect-ratio: 16/9; display: grid; place-items:center; cursor: zoom-in; }
     .media img { width: 100%; height: 100%; object-fit: cover; display:block; }
-    .badge { position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,.5); border: 1px solid #2a3a5c; padding: 4px 8px; border-radius: 999px; font-size: 12px; backdrop-filter: blur(6px); }
 
     .card footer { display:flex; align-items:center; justify-content: space-between; gap:8px; padding: 10px 12px; border-top: 1px solid #1a2a46; }
     .row { display:flex; align-items:center; gap: 8px; flex-wrap: wrap; }
 
     .chip { font-size: 12px; color: #c7d8ff; background: #14243f; border: 1px solid #253a63; padding: 4px 8px; border-radius: 8px; }
 
-    dialog.viewer { width: min(96vw, 1100px); border: none; padding: 0; background: transparent; }
-    dialog::backdrop { background: rgba(7, 10, 20, .6); backdrop-filter: blur(2px); }
-    .viewer-inner { background: #0b1220; border: 1px solid #1a2a46; border-radius: 16px; overflow: hidden; }
-    .viewer-toolbar { display:flex; justify-content: space-between; align-items:center; padding: 8px 10px; border-bottom: 1px solid #1a2a46; }
-    .viewer-body { max-height: 80vh; display:grid; place-items:center; background:#0a1322; }
-    .viewer-body img { width: 100%; height: 100%; object-fit: contain; }
+    /* Fullscreen viewer via dialog; click to close */
+    dialog.viewer { width: 100vw; height: 100vh; border: none; padding: 0; background: rgba(7, 10, 20, .9); }
+    dialog::backdrop { background: rgba(7, 10, 20, .6); }
+    .viewer-body { width:100vw; height:100vh; display:grid; place-items:center; }
+    .viewer-body img { max-width: 100vw; max-height: 100vh; object-fit: contain; display:block; }
+    .viewer-hint { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); font-size:12px; color:#a9b8d8; background: rgba(0,0,0,.4); padding:6px 10px; border-radius: 999px; border:1px solid #2a3a5c; }
 
-    .hidden { display:none; }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>İpsala Kamera Galerisi</h1>
+      <div>
+        <h1>İpsala & Pazarkule Kamera Galerisi</h1>
+        <div class="legend">
+          <span class="dot ipsala"></span> İpsala
+          <span class="dot pazarkule" style="margin-left:12px;"></span> Pazarkule
+        </div>
+      </div>
       <div class="controls">
         <button class="btn primary" id="refreshAll">Tümünü Yenile</button>
         <button class="btn" id="toggleAuto">Oto-Yenile: Kapalı</button>
@@ -72,31 +84,26 @@
     <section class="grid" id="grid"></section>
 
     <dialog class="viewer" id="viewer">
-      <div class="viewer-inner">
-        <div class="viewer-toolbar">
-          <strong id="viewerTitle">Önizleme</strong>
-          <div class="row">
-            <button class="btn" id="viewerRefresh">Yenile</button>
-            <button class="btn" id="viewerClose">Kapat</button>
-          </div>
-        </div>
-        <div class="viewer-body">
-          <img id="viewerImg" alt="Kamera önizleme" />
-        </div>
+      <div class="viewer-body">
+        <img id="viewerImg" alt="Kamera önizleme" />
+        <div class="viewer-hint">Kapatmak için tıklayın</div>
       </div>
     </dialog>
   </div>
 
   <script>
-    // ——— Kamera Kaynakları (kendi listenizi buradan yönetin)
+    // Kamera kaynakları (ikisinin birleşimi)
     const CAMS = {
+      // İpsala
       "ipsala1": "https://lh3.googleusercontent.com/d/1fwwmFufEMJl-QzUEzsUlGwNN42cpboac",
       "ipsala2": "https://lh3.googleusercontent.com/d/1Mms77ohqSCYBAohZd-LhJV0fPryLk_oV",
       "ipsala3": "https://mobesekamerasi.com/kameralar/ipsala2.jpg?ts=1753727561",
       "ipsala4": "https://lh3.googleusercontent.com/d/1xedIDApf2PZGi3VOaY8lBnyxBVwOfZ-x",
+      // Pazarkule
+      "pazarkule1": "https://lh3.googleusercontent.com/d/1cukbjENpHiFD4r1xuK7xKPyhb0cOBWsE",
+      "pazarkule2": "https://lh3.googleusercontent.com/d/1Rdv8mwuKoXLyavVKOXfDNM1onzgMbDHz"
     };
 
-    // ——— Yardımcılar
     const trDT = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const byId = (id) => document.getElementById(id);
 
@@ -106,40 +113,36 @@
         u.searchParams.set('t', Date.now().toString());
         return u.toString();
       } catch {
-        // URL hatalı geldiyse (teorik), yedek yöntem
         const sep = url.includes('?') ? '&' : '?';
         return url + sep + 't=' + Date.now();
       }
     }
 
     function cardTemplate(key, url) {
-      const id = `cam-${key}`;
-      return `
-        <article class="card" data-key="${key}" data-url="${url}">
+      const label = key.replace(/\d+$/,''); // ipsala / pazarkule
+      return \`
+        <article class="card" data-key="\${key}" data-url="\${url}">
           <header>
-            <div class="title">${key.toUpperCase()}</div>
-            <div class="meta" id="meta-${key}">–</div>
+            <div class="title">
+              <span class="tag \${label}">\${label.toUpperCase()}</span>
+              <span>\${key.toUpperCase()}</span>
+            </div>
+            <div class="meta" id="meta-\${key}">–</div>
           </header>
           <div class="media">
-            <span class="badge">Canlı Görüntü</span>
-            <img id="img-${key}" alt="${key} görüntüsü" loading="lazy" referrerpolicy="no-referrer"/>
+            <img id="img-\${key}" alt="\${key} görüntüsü" loading="lazy" referrerpolicy="no-referrer"/>
           </div>
           <footer>
             <div class="row">
-              <span class="chip" id="chip-${key}">Durum: bekleniyor…</span>
-            </div>
-            <div class="row">
-              <button class="btn" data-action="preview" data-key="${key}">Büyüt</button>
-              <button class="btn" data-action="refresh" data-key="${key}">Yenile</button>
+              <span class="chip" id="chip-\${key}">Durum: bekleniyor…</span>
             </div>
           </footer>
-        </article>`;
+        </article>\`;
     }
 
     function mountGrid() {
       const grid = byId('grid');
       grid.innerHTML = Object.entries(CAMS).map(([k, u]) => cardTemplate(k, u)).join('');
-      // İlk yükleme
       Object.keys(CAMS).forEach(loadOnce);
     }
 
@@ -172,27 +175,38 @@
       };
     }
 
-    // ——— Etkinlikler
-    const gridEl = document.addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const key = btn.getAttribute('data-key');
-      const action = btn.getAttribute('data-action');
-      if (!key || !action) return;
-      if (action === 'refresh') loadOnce(key);
-      if (action === 'preview') openViewer(key);
+    // Görüntüye tıklayınca büyüt/küçült (toggle)
+    const viewer = byId('viewer');
+    const viewerImg = byId('viewerImg');
+
+    document.addEventListener('click', (e) => {
+      // Karttaki image'e tıklama
+      const img = e.target.closest('.media img');
+      if (img) {
+        const id = img.id.replace('img-','');
+        viewerImg.src = withCacheBust(CAMS[id]);
+        viewer.showModal();
+        return;
+      }
+      // Viewer açıkken herhangi bir yere tıklama -> kapat
+      if (viewer.open && !e.target.closest('.viewer-body img')) {
+        viewer.close();
+      }
     });
 
-    // ——— Tümünü yenile
+    // Viewer içindeki görsele tıklayınca da kapat (tek tıkta küçülsün)
+    viewer.addEventListener('click', () => viewer.close());
+
+    // Tümünü yenile
     byId('refreshAll').addEventListener('click', () => {
       Object.keys(CAMS).forEach(loadOnce);
       byId('globalStatus').textContent = 'Tüm kameralar yenileniyor…';
       setTimeout(() => byId('globalStatus').textContent = 'Hazır', 1600);
     });
 
-    // ——— Otomatik yenile (varsayılan kapalı)
+    // Otomatik yenile (varsayılan kapalı)
     let autoTimer = null;
-    const AUTO_MS = 15000; // 15 sn
+    const AUTO_MS = 15000;
     byId('toggleAuto').addEventListener('click', () => {
       if (autoTimer) {
         clearInterval(autoTimer); autoTimer = null;
@@ -205,31 +219,8 @@
       }
     });
 
-    // ——— Viewer (büyütme)
-    const viewer = byId('viewer');
-    const viewerImg = byId('viewerImg');
-    const viewerTitle = byId('viewerTitle');
-
-    function openViewer(key) {
-      viewerTitle.textContent = key.toUpperCase();
-      viewerImg.src = withCacheBust(CAMS[key]);
-      viewer.showModal();
-    }
-    byId('viewerClose').addEventListener('click', () => viewer.close());
-    byId('viewerRefresh').addEventListener('click', () => {
-      const title = viewerTitle.textContent.toLowerCase();
-      viewerImg.src = withCacheBust(CAMS[title]);
-    });
-
-    // ——— Başlat
+    // Başlat
     mountGrid();
-
-    // ——— Önemli Notlar:
-    // 1) Bazı kamera kaynakları sıcaklink (hotlink) veya CORS kısıtları nedeniyle
-    //    zaman zaman 403/404 dönebilir. Bu durumda bir resim proxy kullanmanız gerekir.
-    //    (Örn. kendi sunucunuzda küçük bir fetch endpoint ile görselleri aktarabilirsiniz.)
-    // 2) Googleusercontent linkleri genelde çalışır; önbelleği kırmak için her yenilemede
-    //    ?t=timestamp parametresi eklenir.
   </script>
 </body>
 </html>
