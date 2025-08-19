@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>İpsala Pazarkule Hikayeleri</title>
+<style>
+  :root { --bg:#0b0b0c; --card:#141418; --muted:#8b8b94; --text:#eaeaf0; --accent:#4cc3ff; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:980px;margin:40px auto;padding:20px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 20px #0006;padding:18px;}
+  .row{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:10px}
+  select,button{width:100%;padding:10px;border-radius:10px;border:1px solid #2a2a32;background:#0f0f13;color:#eaeaf0}
+  button.primary{background:var(--accent);border:0;color:#001018;font-weight:700;cursor:pointer}
+  .actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+  .hint{color:#a7a7b3;font-size:12px}
+  canvas{width:100%;background:#000;border-radius:12px}
+  .error{background:#3a1014;border:1px solid #7a1f29;color:#ffc9cf;padding:10px;border-radius:10px;margin-top:10px}
+  .success{background:#0f2c1a;border:1px solid #195f39;color:#c9ffdc;padding:10px;border-radius:10px;margin-top:10px}
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#0f2c1a;border:1px solid #195f39;color:#c9ffdc;font-size:12px;font-weight:700}
+  .chklist{margin:10px 0;display:flex;flex-direction:column;gap:6px}
+  .section-title{font-weight:700;color:#cfd3ff;margin:8px 0 2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="section-title">Kapı</div>
+        <select id="gate">
+          <option value="ipsala">İpsala</option>
+          <option value="pazarkule">Pazarkule</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="chkContainer" class="chklist"></div>
+
+    <div class="actions">
+      <button id="mergeBtn" class="primary">Birleştir</button>
+      <button id="refreshBtn">Tümünü Yenile</button>
+      <button id="downloadBtn" disabled>PNG Olarak İndir</button>
+    </div>
+
+    <div id="msg" class="hint" style="margin-top:8px"></div>
+
+    <div style="margin-top:14px">
+      <canvas id="cnv"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+const SOURCES = {
+  ipsala: {
+    urls: [
+      "https://lh3.googleusercontent.com/d/1fwwmFufEMJl-QzUEzsUlGwNN42cpboac?t=1755590336917",
+      "https://lh3.googleusercontent.com/d/1Mms77ohqSCYBAohZd-LhJV0fPryLk_oV?t=1755590411754",
+      "https://mobesekamerasi.com/kameralar/ipsala2.jpg?ts=1753727561&t=1755590420226",
+      "https://lh3.googleusercontent.com/d/1xedIDApf2PZGi3VOaY8lBnyxBVwOfZ-x"
+    ],
+    labels: ["Giriş","Orta Alan","Çıkış","Tır Parkı"],
+    defaults: [true,true,true,false]
+  },
+  pazarkule: {
+    urls: [
+      "https://lh3.googleusercontent.com/d/1Rdv8mwuKoXLyavVKOXfDNM1onzgMbDHz",
+      "https://lh3.googleusercontent.com/d/1cukbjENpHiFD4r1xuK7xKPyhb0cOBWsE"
+    ],
+    labels: ["Giriş","Çıkış"],
+    defaults: [true,true]
+  }
+};
+
+const $ = sel => document.querySelector(sel);
+const cnv = $('#cnv');
+const ctx = cnv.getContext('2d');
+const msgBox = $('#msg');
+const FRAME = 6;          // dış ve aradaki boşluk
+const OUT_W = 1212;
+const PROXY = "https://images.weserv.nl/?url=";
+const proxify = (u, cb) => PROXY + encodeURIComponent(u) + "&cb=" + cb;
+
+function showMsg(html, type=''){ msgBox.innerHTML = html; msgBox.className = type ? type : 'hint'; }
+
+function buildCheckboxes(gate){
+  const cont = document.getElementById('chkContainer');
+  cont.innerHTML = "";
+  const cfg = SOURCES[gate];
+  cfg.urls.forEach((_, i) => {
+    const lbl = cfg.labels[i] || `Görsel ${i+1}`;
+    const wrap = document.createElement('label');
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.className = 'imgchk';
+    chk.value = String(i);
+    chk.checked = !!cfg.defaults[i];
+    wrap.appendChild(chk);
+    wrap.appendChild(document.createTextNode(" " + lbl));
+    cont.appendChild(wrap);
+  });
+}
+
+function currentGate(){ return document.getElementById('gate').value; }
+
+function loadImg(url, cbToken){
+  return new Promise(ok=>{
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+    img.onload = ()=> ok({ ok:true, img, url });
+    img.onerror = ()=> ok({ ok:false, img:null, url });
+    img.src = proxify(url, cbToken);
+  });
+}
+
+async function merge(){
+  showMsg("Yükleniyor...");
+  const gate = currentGate();
+  const cfg = SOURCES[gate];
+  const selectedIdx = Array.from(document.querySelectorAll('.imgchk:checked')).map(c=>parseInt(c.value));
+  if (selectedIdx.length === 0){ showMsg("En az 1 görsel seçin.","error"); return; }
+
+  const cbToken = Date.now().toString() + Math.random().toString(36).slice(2);
+  const urls = selectedIdx.map(i => cfg.urls[i]);
+  const results = await Promise.all(urls.map(u => loadImg(u, cbToken)));
+
+  // Başarısız olanları placeholder ile değiştir
+  const fixed = results.map(r => {
+    if (r.ok) return r;
+    const ph = document.createElement('canvas');
+    ph.width = 640; ph.height = 360;
+    const pctx = ph.getContext('2d');
+    pctx.fillStyle = '#d9d9d9'; pctx.fillRect(0,0,ph.width,ph.height);
+    pctx.fillStyle = '#555'; pctx.font = 'bold 24px system-ui';
+    const txt = 'Yüklenemedi';
+    const mt = pctx.measureText(txt);
+    pctx.fillText(txt, (ph.width - mt.width)/2, (ph.height/2)+8);
+    const img = new Image();
+    img.src = ph.toDataURL('image/png');
+    return { ok:true, img, url: r.url };
+  });
+
+  // Görselleri ölçekle ve yüksekliklerini hesapla (yanlarda 6px pay: OUT_W - 2*FRAME)
+  const scaled = fixed.map(r=>{
+    const img = r.img;
+    const scale = (OUT_W - 2*FRAME) / img.width;
+    return { w: Math.round(img.width * scale), h: Math.round(img.height * scale), img };
+  });
+
+  // Toplam yükseklik: içeriklerin toplamı + (n+1)*FRAME (üst, alt ve n-1 aralık)
+  const totalHeight = scaled.reduce((sum,s)=> sum + s.h, 0) + (scaled.length + 1) * FRAME;
+  cnv.width = OUT_W;
+  cnv.height = totalHeight;
+
+  // Arka plan
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0,0,OUT_W,totalHeight);
+
+  // Görselleri sırayla çiz (sadece 6px dış ve arada 6px olacak şekilde)
+  let y = FRAME; // üst boşluk
+  for (const s of scaled){
+    const x = Math.floor((OUT_W - s.w)/2);
+    ctx.drawImage(s.img, x, y, s.w, s.h);
+    y += s.h + FRAME; // araya 6px
+  }
+
+  showMsg(`Hazır! ${OUT_W}×${totalHeight} px (${scaled.length} görsel, kapı: ${gate})`, "success");
+  document.getElementById('downloadBtn').disabled = false;
+}
+
+function download(){
+  const gate = currentGate();
+  try {
+    const url = cnv.toDataURL('image/png');
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replaceAll(':','-').split('.')[0];
+    a.href = url; a.download = `birlesik_${gate}_${stamp}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) {
+    showMsg("İndirme engellendi ya da canvas CORS ile kirlenmiş olabilir.", "error");
+  }
+}
+
+document.getElementById('gate').addEventListener('change', ()=> buildCheckboxes(currentGate()));
+document.getElementById('mergeBtn').addEventListener('click', merge);
+document.getElementById('refreshBtn').addEventListener('click', merge);
+document.getElementById('downloadBtn').addEventListener('click', download);
+
+buildCheckboxes("ipsala");
+merge();
+</script>
+</body>
+</html>
