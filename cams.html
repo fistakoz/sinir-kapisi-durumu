@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Canlı Kameralar</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #111a2b;
+      --muted: #8aa0c6;
+      --accent: #4da3ff;
+      --ok: #19c37d;
+      --warn: #ffb020;
+      --err: #ff5c5c;
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+      background: linear-gradient(180deg, #0b1220, #0c1526 30%, #0e1a2f 70%);
+      color: #e8f0ff;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    header { display:flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    header h1 { font-size: 20px; margin: 8px 0; font-weight: 700; letter-spacing: .2px; }
+    .controls { display:flex; gap: 8px; flex-wrap: wrap; }
+    .btn { appearance: none; border: 1px solid #2a3a5c; background: #132038; color: #e8f0ff; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    .btn:hover { border-color: #355080; background: #162746; }
+    .btn.primary { border-color: #3b6ab8; background: #173057; }
+    .btn.primary:hover { border-color: #4da3ff; box-shadow: 0 0 0 2px #1a2b49 inset; }
+    .status { font-size: 12px; color: var(--muted); }
+
+    .grid { display: grid; gap: 12px; margin-top: 14px; }
+    @media (min-width: 420px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 820px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .card { background: var(--card); border: 1px solid #1a2a46; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,.25); display:flex; flex-direction: column; }
+    .card header { padding: 10px 12px; border-bottom: 1px solid #1a2a46; justify-content: space-between; }
+    .title { font-size: 14px; font-weight: 700; letter-spacing: .3px; }
+    .meta { font-size: 12px; color: var(--muted); }
+
+    .media { position: relative; background: #0a1322; aspect-ratio: 16/9; display: grid; place-items:center; cursor: zoom-in; }
+    .media img { width: 100%; height: 100%; object-fit: cover; display:block; }
+    .badge { position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,.5); border: 1px solid #2a3a5c; padding: 4px 8px; border-radius: 999px; font-size: 12px; backdrop-filter: blur(6px); }
+
+    .card footer { display:flex; align-items:center; justify-content: space-between; gap:8px; padding: 10px 12px; border-top: 1px solid #1a2a46; }
+    .row { display:flex; align-items:center; gap: 8px; flex-wrap: wrap; }
+
+    .chip { font-size: 12px; color: #c7d8ff; background: #14243f; border: 1px solid #253a63; padding: 4px 8px; border-radius: 8px; }
+
+    dialog.viewer { width: min(96vw, 1100px); border: none; padding: 0; background: transparent; }
+    dialog::backdrop { background: rgba(7, 10, 20, .6); backdrop-filter: blur(2px); }
+    .viewer-inner { background: #0b1220; border: 1px solid #1a2a46; border-radius: 16px; overflow: hidden; }
+    .viewer-toolbar { display:flex; justify-content: space-between; align-items:center; padding: 8px 10px; border-bottom: 1px solid #1a2a46; }
+    .viewer-body { max-height: 80vh; display:grid; place-items:center; background:#0a1322; }
+    .viewer-body img { width: 100%; height: 100%; object-fit: contain; }
+
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CANLI KAMERALAR</h1>
+      <div class="controls">
+        <button class="btn primary" id="refreshAll">Tümünü Yenile</button>
+        <button class="btn" id="toggleAuto">Oto-Yenile: Kapalı</button>
+        <span class="status" id="globalStatus">Hazır</span>
+      </div>
+    </header>
+
+    <section class="grid" id="grid"></section>
+
+    <dialog class="viewer" id="viewer">
+      <div class="viewer-inner">
+        <div class="viewer-toolbar">
+          <strong id="viewerTitle">Önizleme</strong>
+          <div class="row">
+            <button class="btn" id="viewerRefresh">Yenile</button>
+            <button class="btn" id="viewerClose">Kapat</button>
+          </div>
+        </div>
+        <div class="viewer-body">
+          <img id="viewerImg" alt="Kamera önizleme" />
+        </div>
+      </div>
+    </dialog>
+  </div>
+
+  <script>
+    // ——— Kamera Kaynakları (kendi listenizi buradan yönetin)
+    const CAMS = {
+      "ipsala1": "https://lh3.googleusercontent.com/d/1fwwmFufEMJl-QzUEzsUlGwNN42cpboac",
+      "ipsala2": "https://lh3.googleusercontent.com/d/1Mms77ohqSCYBAohZd-LhJV0fPryLk_oV",
+      "ipsala3": "https://mobesekamerasi.com/kameralar/ipsala2.jpg?ts=1753727561",
+      "ipsala4": "https://lh3.googleusercontent.com/d/1xedIDApf2PZGi3VOaY8lBnyxBVwOfZ-x",
+      "pazarkule1": "https://lh3.googleusercontent.com/d/1cukbjENpHiFD4r1xuK7xKPyhb0cOBWsE",
+      "pazarkule2": "https://lh3.googleusercontent.com/d/1Rdv8mwuKoXLyavVKOXfDNM1onzgMbDHz"
+    };
+
+    // ——— Yardımcılar
+    const trDT = new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const byId = (id) => document.getElementById(id);
+
+    function withCacheBust(url) {
+      try {
+        const u = new URL(url);
+        u.searchParams.set('t', Date.now().toString());
+        return u.toString();
+      } catch {
+        const sep = url.includes('?') ? '&' : '?';
+        return url + sep + 't=' + Date.now();
+      }
+    }
+
+    function cardTemplate(key, url) {
+      return `
+        <article class="card" data-key="${key}" data-url="${url}">
+          <header>
+            <div class="title">${key.toUpperCase()}</div>
+            <div class="meta" id="meta-${key}">–</div>
+          </header>
+          <div class="media">
+            <img id="img-${key}" alt="${key} görüntüsü" loading="lazy" referrerpolicy="no-referrer"/>
+          </div>
+          <footer>
+            <div class="row">
+              <span class="chip" id="chip-${key}">Durum: bekleniyor…</span>
+            </div>
+            <div class="row">
+              <button class="btn" data-action="preview" data-key="${key}">Büyüt</button>
+              <button class="btn" data-action="refresh" data-key="${key}">Yenile</button>
+            </div>
+          </footer>
+        </article>`;
+    }
+
+    function mountGrid() {
+      const grid = byId('grid');
+      grid.innerHTML = Object.entries(CAMS).map(([k, u]) => cardTemplate(k, u)).join('');
+      Object.keys(CAMS).forEach(loadOnce);
+    }
+
+    function setMeta(key, text) {
+      const meta = byId('meta-' + key);
+      if (meta) meta.textContent = text;
+    }
+    function setChip(key, text, tone = 'ok') {
+      const chip = byId('chip-' + key);
+      if (!chip) return;
+      chip.textContent = text;
+      chip.style.borderColor = tone === 'ok' ? '#275d48' : tone === 'warn' ? '#5f4b14' : '#6b1f1f';
+      chip.style.background = tone === 'ok' ? '#102a21' : tone === 'warn' ? '#241d0a' : '#2a0e0e';
+    }
+
+    function loadOnce(key) {
+      const url = CAMS[key];
+      const el = byId('img-' + key);
+      if (!el) return;
+      const src = withCacheBust(url);
+      el.src = src;
+      setChip(key, 'Yükleniyor…', 'warn');
+      el.onload = () => {
+        setChip(key, 'Güncellendi: ' + trDT.format(new Date()), 'ok');
+        setMeta(key, 'Son yenileme: ' + trDT.format(new Date()));
+      };
+      el.onerror = () => {
+        setChip(key, 'Hata: Görüntü alınamadı', 'err');
+        setMeta(key, 'Bağlantı/izin hatası olabilir');
+      };
+    }
+
+    // ——— Click handlers
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (btn) {
+        const key = btn.getAttribute('data-key');
+        const action = btn.getAttribute('data-action');
+        if (key && action === 'refresh') loadOnce(key);
+        if (key && action === 'preview') openViewer(key);
+        return;
+      }
+    });
+
+    // Görüntünün kendisine tıklayınca büyüt
+    document.addEventListener('click', (e) => {
+      const img = e.target.closest('.media img');
+      if (!img) return;
+      const key = img.id.replace('img-','');
+      openViewer(key);
+    });
+
+    // Viewer
+    const viewer = byId('viewer');
+    const viewerImg = byId('viewerImg');
+    const viewerTitle = byId('viewerTitle');
+
+    function openViewer(key) {
+      viewerTitle.textContent = key.toUpperCase();
+      viewerImg.src = withCacheBust(CAMS[key]);
+      viewer.showModal();
+    }
+    byId('viewerClose').addEventListener('click', () => viewer.close());
+    byId('viewerRefresh').addEventListener('click', () => {
+      const title = viewerTitle.textContent.toLowerCase();
+      viewerImg.src = withCacheBust(CAMS[title]);
+    });
+    viewer.addEventListener('click', () => viewer.close());
+
+    // ——— MISSING BEFORE: Add handlers for Tümünü Yenile & Oto-Yenile
+    byId('refreshAll').addEventListener('click', () => {
+      Object.keys(CAMS).forEach(loadOnce);
+      byId('globalStatus').textContent = 'Tüm kameralar yenileniyor…';
+      setTimeout(() => byId('globalStatus').textContent = 'Hazır', 1600);
+    });
+
+    let autoTimer = null;
+    const AUTO_MS = 15000;
+    byId('toggleAuto').addEventListener('click', () => {
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        byId('toggleAuto').textContent = 'Oto-Yenile: Kapalı';
+        byId('globalStatus').textContent = 'Otomatik yenile kapatıldı';
+      } else {
+        autoTimer = setInterval(() => Object.keys(CAMS).forEach(loadOnce), AUTO_MS);
+        byId('toggleAuto').textContent = 'Oto-Yenile: Açık (15 sn)';
+        byId('globalStatus').textContent = 'Otomatik yenile etkin';
+      }
+    });
+
+    // ——— Başlat
+    mountGrid();
+
+  </script>
+</body>
+</html>
