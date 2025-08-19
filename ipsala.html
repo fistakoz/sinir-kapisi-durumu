@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Üç Görseli DİKEY Birleştir → Tek PNG (1212x2061, 6px çerçeve, cache-bust)</title>
+<title>İpsala Hikaye</title>
 <style>
   :root { --bg:#0b0b0c; --card:#141418; --muted:#8b8b94; --text:#eaeaf0; --accent:#4cc3ff; }
   *{box-sizing:border-box}
@@ -18,13 +18,20 @@
   .error{background:#3a1014;border:1px solid #7a1f29;color:#ffc9cf;padding:10px;border-radius:10px;margin-top:10px}
   .success{background:#0f2c1a;border:1px solid #195f39;color:#c9ffdc;padding:10px;border-radius:10px;margin-top:10px}
   .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#0f2c1a;border:1px solid #195f39;color:#c9ffdc;font-size:12px;font-weight:700}
+  .chklist{margin:10px 0;display:flex;flex-direction:column;gap:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h2>Üç Görseli <span class="badge">DİKEY</span> Birleştir → Tek PNG (1212×2061)</h2>
+  <h2>İpsala Hikaye Görselleri</h2>
 
   <div class="card">
+    <div class="chklist">
+      <label><input type="checkbox" class="imgchk" value="0" checked> Giriş</label>
+      <label><input type="checkbox" class="imgchk" value="1" checked> Orta Alan</label>
+      <label><input type="checkbox" class="imgchk" value="2" checked> Çıkış</label>
+      <label><input type="checkbox" class="imgchk" value="3"> Tır Parkı</label>
+    </div>
     <div class="actions">
       <button id="mergeBtn" class="primary">Birleştir</button>
       <button id="refreshBtn">Tümünü Yenile</button>
@@ -39,31 +46,28 @@
   </div>
 
   <p class="hint">
-    Not: Çıktı ölçüsü her zaman <b>1212x2061</b> px olacak şekilde sabitlenmiştir. Görseller arasında ve etrafında 6px siyah çerçeve vardır.
-    Görseller her yüklemede <i>cache-bust</i> uygulanır; böylece kaynak sunucu görüntüyü güncellediyse burada da yenilenir.
+    Not: Çıktı ölçüsü her zaman <b>1212x2061</b> px. Varsayılan olarak 1,2,3 seçili gelir; 4. görseli isterseniz işaretleyebilirsiniz.
   </p>
 </div>
 
 <script>
-// Kaynak URL'ler (koda gömülü)
-const URLS = [
+// Kaynak URL'ler
+const ALL_URLS = [
   "https://lh3.googleusercontent.com/d/1fwwmFufEMJl-QzUEzsUlGwNN42cpboac?t=1755590336917",
   "https://lh3.googleusercontent.com/d/1Mms77ohqSCYBAohZd-LhJV0fPryLk_oV?t=1755590411754",
-  "https://mobesekamerasi.com/kameralar/ipsala2.jpg?ts=1753727561&t=1755590420226"
+  "https://mobesekamerasi.com/kameralar/ipsala2.jpg?ts=1753727561&t=1755590420226",
+  "https://lh3.googleusercontent.com/d/1xedIDApf2PZGi3VOaY8lBnyxBVwOfZ-x"
 ];
 
 const $ = sel => document.querySelector(sel);
 const cnv = $('#cnv');
 const ctx = cnv.getContext('2d');
 const msgBox = $('#msg');
+const FRAME = 6;
+const OUT_W = 1212, OUT_H = 2061;
 
-// Tüm resimleri proxy ile al (CORS güvenli). Cache-bust için her isteğe benzersiz 'cb' ekle.
 const PROXY = "https://images.weserv.nl/?url=";
 const proxify = (u, cb) => PROXY + encodeURIComponent(u) + "&cb=" + cb;
-
-const FRAME = 6;        // 6px siyah çerçeve
-const OUT_W = 1212;     // sabit çıktı
-const OUT_H = 2061;
 
 function showMsg(html, type=''){ msgBox.innerHTML = html; msgBox.className = type ? type : 'hint'; }
 
@@ -72,7 +76,6 @@ function loadImg(url, cbToken){
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.decoding = "async";
-    img.loading = "eager";
     img.onload = ()=> ok({ ok:true, img, url });
     img.onerror = ()=> ok({ ok:false, img:null, url });
     img.src = proxify(url, cbToken);
@@ -83,11 +86,13 @@ async function merge(){
   showMsg("Yükleniyor...");
   cnv.width = OUT_W; cnv.height = OUT_H;
 
-  // Her yüklemede farklı bir cache-bust değeri kullan
-  const cbToken = Date.now().toString() + Math.random().toString(36).slice(2);
-  const results = await Promise.all(URLS.map(u => loadImg(u, cbToken)));
+  const selected = Array.from(document.querySelectorAll('.imgchk:checked')).map(c=>parseInt(c.value));
+  if (selected.length === 0){ showMsg("En az 1 görsel seçin.","error"); return; }
 
-  // Başarısız olanlara placeholder
+  const cbToken = Date.now().toString() + Math.random().toString(36).slice(2);
+  const urls = selected.map(i => ALL_URLS[i]);
+  const results = await Promise.all(urls.map(u => loadImg(u, cbToken)));
+
   const fixed = results.map(r => {
     if (r.ok) return r;
     const ph = document.createElement('canvas');
@@ -103,10 +108,7 @@ async function merge(){
     return { ok:true, img, url: r.url };
   });
 
-  // Arka plan
   ctx.fillStyle = "#000"; ctx.fillRect(0,0,OUT_W,OUT_H);
-
-  // Dikeyde üç eşit bölge içine, orantıyı koruyarak yerleştir + 6px siyah çerçeve
   const partHeight = Math.floor(OUT_H / fixed.length);
   for (let i=0;i<fixed.length;i++){
     const img = fixed[i].img;
@@ -116,11 +118,11 @@ async function merge(){
     const x = Math.floor((OUT_W - w)/2);
     const y = i*partHeight + Math.floor((partHeight - h)/2);
     ctx.fillStyle = "#000";
-    ctx.fillRect(x - FRAME, y - FRAME, w + 2*FRAME, h + 2*FRAME); // çerçeve
+    ctx.fillRect(x - FRAME, y - FRAME, w + 2*FRAME, h + 2*FRAME);
     ctx.drawImage(img, x, y, w, h);
   }
 
-  showMsg(`Hazır! ${OUT_W}×${OUT_H} px (cb uygulanmış)`, "success");
+  showMsg(`Hazır! ${OUT_W}×${OUT_H} px (${fixed.length} görsel)`, "success");
   $('#downloadBtn').disabled = false;
 }
 
@@ -128,7 +130,7 @@ function download(){
   const url = cnv.toDataURL('image/png');
   const a = document.createElement('a');
   const stamp = new Date().toISOString().replaceAll(':','-').split('.')[0];
-  a.href = url; a.download = `birlesik_dikey_${OUT_W}x${OUT_H}_cb_${stamp}.png`;
+  a.href = url; a.download = `birlesik_dikey_${OUT_W}x${OUT_H}_${stamp}.png`;
   document.body.appendChild(a); a.click(); a.remove();
 }
 
