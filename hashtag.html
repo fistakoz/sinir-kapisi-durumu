@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Minimal Hashtag Üretici</title>
+<style>
+:root{
+  --bg:#0b0f14; --muted:#10161f; --card:#121924; --text:#eaf2ff; --sub:#9fb3c8;
+  --acc:#4da3ff; --acc2:#7ef0b6; --br:16px; --pad:16px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:#0b0f14; color:var(--text);
+  font:500 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+.wrap{max-width:900px; margin:0 auto; padding:16px}
+h1{margin:0 0 6px; font-size:22px}
+.sub{color:var(--sub); margin:0 0 12px}
+.panel{
+  background:var(--muted); border:1px solid #172337; border-radius:12px; padding:12px;
+  display:grid; gap:10px; grid-template-columns: 1fr;
+}
+label{display:flex; flex-direction:column; gap:6px; font-size:13px; color:var(--sub)}
+select, input{
+  width:100%; background:#0f1722; color:var(--text); border:1px solid #1b2940; border-radius:10px;
+  padding:12px 12px; outline:none; min-height:44px;
+}
+button{
+  appearance:none; border:none; border-radius:12px; padding:14px 14px; font-weight:700; cursor:pointer;
+  background:linear-gradient(180deg, #2a65ff, #1a49d9); color:white; width:100%;
+}
+button.secondary{background:#162235; color:#b9d1ff; border:1px solid #1b2b45}
+.actions{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.card{margin-top:12px; background:var(--card); border:1px solid #172337; border-radius:var(--br); padding:var(--pad)}
+.row{display:flex; gap:10px; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap}
+.hashtags{
+  background:#0e1622; border:1px dashed #1a2a44; border-radius:12px; padding:12px; color:#dbe8ff;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace; white-space:pre-wrap; word-break:break-word;
+  min-height:56px;
+}
+.small{font-size:12px; color:#7ea7ff}
+.pill{
+  display:inline-flex; align-items:center; gap:8px; background:#0e1826; color:#a8c6ff;
+  padding:6px 10px; border-radius:999px; border:1px solid #1e2f4b; font-size:12px; margin-left:6px
+}
+@media (min-width:560px){
+  .panel{grid-template-columns: repeat(2, minmax(0,1fr))}
+  .actions{grid-template-columns: 1fr 1fr}
+}
+@media (min-width:900px){
+  .panel{grid-template-columns: repeat(4, minmax(0,1fr))}
+  .wrap{padding:20px}
+}
+@supports (-webkit-touch-callout: none) {
+  select,input,button,label{font-size:16px}
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f6f8fb; --muted:#eef2f7; --card:#ffffff; --text:#0b182a; --sub:#445a74 }
+  body{background:var(--bg); color:var(--text)}
+  .sub{color:var(--sub)}
+  .panel, .card{border-color:#dae4f0}
+  select, input{background:#fff; color:#0b182a; border-color:#d0d9e6}
+  .hashtags{background:#f2f6fb; color:#0b182a; border-color:#d0d9e6}
+  button.secondary{color:#183559; border-color:#c7d4e6}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Minimal Hashtag Üretici</h1>
+  <p class="sub">Kapı + gün seç; set otomatik üretilir. “Varyasyon Üret” → yeni kombinasyon.</p>
+
+  <div class="panel">
+    <label>Kapı
+      <select id="gate">
+        <option value="ipsala">@ipsalagecis</option>
+        <option value="kipi">@kipigecis</option>
+        <option value="pazarkule">@pazarkulegecis</option>
+        <option value="kestanelik">@kestanelikgecis</option>
+      </select>
+    </label>
+    <label>Gün
+      <select id="day">
+        <option>Pazartesi</option><option>Salı</option><option>Çarşamba</option>
+        <option>Perşembe</option><option>Cuma</option><option>Cumartesi</option><option>Pazar</option>
+      </select>
+    </label>
+    <label>Sezon/Tema (otomatik)
+      <select id="season">
+        <option value="none">— Yok —</option>
+        <option value="yaz">Yaz</option>
+        <option value="kış">Kış</option>
+        <option value="bayram">Bayram</option>
+        <option value="genel2025">2025 Genel</option>
+      </select>
+    </label>
+    <label>Biçim
+      <select id="format">
+        <option value="single">Tek satır</option>
+        <option value="lines">Her satır bir hashtag</option>
+      </select>
+    </label>
+    <label>Marka etiketi
+      <select id="brand">
+        <option value="auto">Seçili kapıya göre</option>
+        <option value="none">Kullanma</option>
+        <option value="#ipsalagecis">#ipsalagecis</option>
+        <option value="#kipigecis">#kipigecis</option>
+        <option value="#pazarkulegecis">#pazarkulegecis</option>
+        <option value="#kestanelikgecis">#kestanelikgecis</option>
+      </select>
+    </label>
+    <label>Özel etiketler (virgülle)
+      <input id="custom" placeholder="#ornek1, #ornek2">
+    </label>
+
+    <div class="actions">
+      <button id="generate" aria-label="Varyasyon üret">Varyasyon Üret</button>
+      <button id="copy" class="secondary" aria-label="Kopyala">Kopyala</button>
+    </div>
+
+    <div class="small">Kural:
+      <span class="pill">3 niş</span><span class="pill">3 gurbet</span>
+      <span class="pill">2 tatil</span><span class="pill">2 yerel</span>
+      (+0/1 sezon/marka/özel)
+    </div>
+  </div>
+
+  <div class="card" role="region" aria-live="polite" aria-label="Üretilen etiketler">
+    <div class="row">
+      <strong>Üretilen Set</strong>
+      <span id="poolInfo" class="small"></span>
+    </div>
+    <div id="out" class="hashtags">#etiketler burada görünecek</div>
+  </div>
+</div>
+
+<script>
+/* ---------- PRNG + yardımcılar ---------- */
+function xmur3(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}return function(){h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return (h^h>>>16)>>>0}}
+function sfc32(a,b,c,d){return function(){a|=0;b|=0;c|=0;d|=0;let t=(a+b|0)+d|0;d=d+1|0;a=b^b>>>9;b=c+(c<<3)|0;c=(c<<21|c>>>11);c=c+t|0;return (t>>>0)/4294967296}}
+function seededRNG(seedStr){const seed=xmur3(seedStr);return sfc32(seed(),seed(),seed(),seed())}
+function sample(arr,n,rng){const p=arr.slice();const out=[];for(let i=0;i<n&&p.length;i++){out.push(p.splice(Math.floor(rng()*p.length),1)[0])}return out}
+
+/* ---------- Havuzlar (genişletilmiş) ---------- */
+const POOLS = {
+  ipsala:{
+    sinir:["#ipsalasınırkapısı","#sılayolu","#sınırkapısı","#pazarkule","#kipi","#gümrük","#yolda","#yolculuk","#tatilyolu","#memleketyolu","#sınıryoğunluğu","#geçişsüresi","#yoldurum","#trafikdurumu","#edirnekapıları","#trakyaçıkışı","#yunanistanrotası","#gecisdurumu","#sınırgeçişi","#eu-route","#tr-gr"],
+    gurbet:["#gurbetçi","#gurbet","#sılaözlemi","#anayurt","#gurbettenmemlekete","#avrupa","#memleket","#gurbetyolu","#gurbetlik","#sıla","#sılayolundayız","#vatanözlemi","#evedönüş","#memleketyolculuğu","#aileziyareti","#dönüşrotası","#gurbet2025","#sıla2025","#gurbetler","#gurbetyolu"],
+    tatil:["#tatil","#holiday","#vacation","#seyahat","#travel","#roadtrip","#gezgin","#tatilkeyfi","#tatilmodu","#travelgram","#roadtripvibes","#drivetrip","#exploreTurkey","#exploreGreece","#wanderlust","#traveladdict","#holidaymode","#vacationtime","#tripnotes","#yolhikayesi"],
+    yerel:["#edirne","#trakya","#istanbul","#bursa","#izmir","#ankara","#çanakkale","#greece","#yunanistan","#alexandroupolis","#komotini","#gumulcine","#thrace","#evros","#merich","#edirnelife","#edirnecity","#turkey","#hellas","#aegean"]
+  },
+  kipi:{
+    sinir:["#kipisınırkapısı","#pazarkule","#ipsala","#sınırkapısı","#gümrük","#yolculuk","#tatilyolu","#sılayolu","#memleketyolu","#yolda","#sınıryoğunluğu","#geçişsüresi","#dönüşyolu","#evrotis","#kapıdurumu","#gr-tr","#kipiyogunluk","#kipigecis","#greekborder","#borderqueue"],
+    gurbet:["#gurbetçi","#gurbet","#sıla","#sılaözlemi","#anayurt","#gurbettenmemlekete","#avrupa","#memleket","#gurbetyolu","#sılayolu","#evedönüş","#vatanözlemi","#memleketyolu","#aileziyareti","#dönüşrotası","#gurbet2025","#gurbetlar","#turkiyeyedonus","#gurbettenvatan","#sılayoluhikayesi"],
+    tatil:["#tatil","#tatilbitiyor","#seyahat","#travel","#vacation","#holiday","#roadtrip","#dönüşyolu","#travelgram","#tatilkeyfi","#holidayvibes","#vacationtime","#wanderlust","#roadtripvibes","#tripback","#sezonfinali","#traveladdict","#holidaymode","#summerroads","#aftervacation"],
+    yerel:["#yunanistan","#greece","#alexandroupolis","#komotini","#thrace","#edirne","#trakya","#turkey","#çanakkale","#istanbul","#bursa","#izmir","#evros","#hellas","#aegean","#dedeağaç","#gumulcine","#merich","#rodopi","#tracia"]
+  },
+  pazarkule:{
+    sinir:["#pazarkulesınırkapısı","#pazarkule","#kipi","#ipsala","#sınırkapısı","#gümrük","#yolculuk","#tatilyolu","#yolda","#memleketyolu","#sınıryoğunluğu","#geçişsüresi","#kapıdurumu","#tr-gr","#yolbilgisi","#bordercrossing","#pazarkulegeçiş","#alexroute","#edirnekapıları","#eu-route"],
+    gurbet:["#gurbetçi","#gurbet","#sıla","#sılaözlemi","#anayurt","#gurbettenmemlekete","#avrupa","#memleket","#gurbetyolu","#sılayolu","#evedönüş","#memleketyolu","#dönüşrotası","#vatanözlemi","#aileziyareti","#gurbet2025","#memlekethasreti","#gurbetyolu","#gurbetler","#sılayolundayız"],
+    tatil:["#tatil","#seyahat","#travel","#vacation","#holiday","#roadtrip","#gezgin","#tatilkeyfi","#tatilmodu","#travelgram","#holidayvibes","#vacationtime","#exploreGreece","#wanderlust","#tripnotes","#roadtripvibes","#traveladdict","#egekıyıları","#aegeantrip","#blueescape"],
+    yerel:["#edirne","#trakya","#istanbul","#bursa","#izmir","#ankara","#çanakkale","#greece","#yunanistan","#alexandroupolis","#komotini","#thrace","#evros","#hellas","#edirnecity","#edirnelife","#merich","#aegean","#turkey","#tracia"]
+  },
+  kestanelik:{
+    sinir:["#kestaneliksınırkapısı","#kestanelik","#kipi","#pazarkule","#sınırkapısı","#gümrük","#yolculuk","#tatilyolu","#sılayolu","#memleketyolu","#kapıdurumu","#geçişsüresi","#borderqueue","#gr-tr","#dönüşyolu","#kestanelikgeçiş","#yolbilgisi","#sınıryoğunluğu","#rodopirota","#thracianroute"],
+    gurbet:["#gurbetçi","#gurbet","#sıla","#sılaözlemi","#anayurt","#gurbettenmemlekete","#avrupa","#memleket","#gurbetyolu","#sılayolu","#evedönüş","#memleketyolu","#vatanözlemi","#dönüşrotası","#aileziyareti","#gurbet2025","#sılayoluhikayesi","#turkiyeyedonus","#gurbetler","#travellershome"],
+    tatil:["#tatil","#tatilbitiyor","#seyahat","#travel","#vacation","#holiday","#roadtrip","#dönüşyolu","#travelgram","#tatilkeyfi","#holidayvibes","#vacationtime","#wanderlust","#aftervacation","#roadtripvibes","#tripback","#sezonbitti","#summerroads","#egekıyıları","#aegeantrip"],
+    yerel:["#yunanistan","#greece","#alexandroupolis","#komotini","#thrace","#edirne","#trakya","#turkey","#çanakkale","#istanbul","#bursa","#izmir","#rodopi","#evros","#hellas","#dedeağaç","#gumulcine","#merich","#aegean","#tracia"]
+  }
+};
+const SEASON = {
+  none: [], yaz:["#yaztatili","#summer2025","#holidayvibes","#beachroute","#egekıyıları"],
+  "kış":["#kışrotası","#kıştatili","#winterdrive","#kışyolu","#sogukhavayolculuğu"],
+  bayram:["#bayramyolu","#bayramtatili","#bayramdönüşü","#arefegünü","#bayramtrafik"],
+  genel2025:["#travel2025","#vacation2025","#roadtrip2025","#gurbet2025","#sıla2025"]
+};
+const BRAND = {ipsala:"#ipsalagecis", kipi:"#kipigecis", pazarkule:"#pazarkulegecis", kestanelik:"#kestanelikgecis"};
+
+/* ---------- DOM & İşlevler ---------- */
+const gateEl=document.getElementById("gate"),
+      dayEl=document.getElementById("day"),
+      seasonEl=document.getElementById("season"),
+      formatEl=document.getElementById("format"),
+      brandEl=document.getElementById("brand"),
+      customEl=document.getElementById("custom"),
+      outEl=document.getElementById("out"),
+      poolInfo=document.getElementById("poolInfo");
+
+/* Otomatik sezon belirleme (Europe/Istanbul) */
+function detectSeason(){
+  const now = new Date();
+  const m = now.getMonth()+1; // 1-12
+  // Haz–Eyl: yaz, Ara–Şub: kış, diğerlerinde 2025 genel
+  if (m>=6 && m<=9) return "yaz";
+  if (m===12 || m===1 || m===2) return "kış";
+  return "genel2025";
+}
+
+/* Event: her değişiklikte otomatik üretim */
+function wireAutoBuild(){
+  ["change","input"].forEach(evt=>{
+    gateEl.addEventListener("change", buildOnce);
+    dayEl.addEventListener("change", buildOnce);
+    seasonEl.addEventListener("change", buildOnce);
+    formatEl.addEventListener("change", buildOnce);
+    brandEl.addEventListener("change", buildOnce);
+    customEl.addEventListener("input", buildOnce);
+  });
+}
+
+function seededRNG(seedStr){const seed=xmur3(seedStr);return sfc32(seed(),seed(),seed(),seed())}
+function sample(arr,n,rng){const p=arr.slice(), out=[];for(let i=0;i<n&&p.length;i++){out.push(p.splice(Math.floor(rng()*p.length),1)[0])}return out}
+
+function buildOnce(){
+  const gate=gateEl.value, day=dayEl.value, fmt=formatEl.value;
+  let season=seasonEl.value, brand=brandEl.value;
+  const custom=customEl.value.split(",").map(s=>s.trim()).filter(Boolean);
+
+  // Sezon otomatikse güncelle
+  const autoSeason = detectSeason();
+  if (season==="none" || season==="genel2025" || season==="yaz" || season==="kış" || season==="bayram"){
+    // Auto mod: select değerini mevsime göre ayarla (bayram tespiti offline zor olduğu için elle seçilebilir)
+    season = autoSeason;
+    seasonEl.value = autoSeason;
+  }
+
+  const pools=POOLS[gate];
+  const rng=seededRNG(`${gate}|${day}|${season}|${brand}|${custom.join(",")}|${Date.now()}`);
+
+  let pick=[
+    ...sample(pools.sinir,3,rng),
+    ...sample(pools.gurbet,3,rng),
+    ...sample(pools.tatil,2,rng),
+    ...sample(pools.yerel,2,rng)
+  ];
+
+  // Sezon etiketi → bir etiketi değiştir
+  const sTags=SEASON[season]||[];
+  if(sTags.length){
+    const st=sTags[Math.floor(rng()*sTags.length)];
+    let idx=pick.findIndex(t=>pools.tatil.includes(t));
+    if(idx<0) idx=pick.findIndex(t=>pools.yerel.includes(t));
+    if(idx<0) idx=Math.floor(rng()*pick.length);
+    pick[idx]=st;
+  }
+
+  // Marka etiketi → bir etiketi değiştir
+  let brandTag=null;
+  if(brand==="auto") brandTag=({ipsala:"#ipsalagecis", kipi:"#kipigecis", pazarkule:"#pazarkulegecis", kestanelik:"#kestanelikgecis"})[gate];
+  else if(brand!=="none") brandTag=brand;
+  if(brandTag){
+    let idx=pick.findIndex(t=>pools.tatil.includes(t));
+    if(idx<0) idx=pick.findIndex(t=>pools.yerel.includes(t));
+    if(idx<0) idx=Math.floor(rng()*pick.length);
+    pick[idx]=brandTag;
+  }
+
+  // Özel etiket (varsa) → bir gurbet slotunu değiştir
+  if(custom.length){
+    const ct=custom[Math.floor(rng()*custom.length)];
+    let gi=pick.findIndex(t=>pools.gurbet.includes(t));
+    if(gi<0) gi=Math.floor(rng()*pick.length);
+    pick[gi]=ct;
+  }
+
+  // Shuffle
+  for(let i=pick.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[pick[i],pick[j]]=[pick[j],pick[i]]}
+
+  // Bilgi ve çıktı
+  poolInfo.textContent=`Sezon: ${season.toUpperCase()} • Havuz: niş ${pools.sinir.length}, gurbet ${pools.gurbet.length}, tatil ${pools.tatil.length}, yerel ${pools.yerel.length}`;
+  outEl.textContent = (fmt==="lines") ? pick.join("\n") : pick.join(" ");
+}
+
+/* Kopyala */
+async function copyOut(){
+  try{ await navigator.clipboard.writeText(outEl.textContent); toast("Kopyalandı ✅"); }
+  catch(e){
+    const ta=document.createElement("textarea"); ta.value=outEl.textContent; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); ta.remove(); toast("Kopyalandı ✅");
+  }
+}
+function toast(msg){
+  const t=document.createElement("div");
+  t.textContent=msg;
+  Object.assign(t.style,{
+    position:"fixed", bottom:"18px", right:"18px", background:"#0f1a2a", color:"#cfe4ff",
+    padding:"10px 14px", border:"1px solid #1a2a44", borderRadius:"12px", zIndex:9999,
+    opacity:"0", transition:"opacity .2s ease, transform .2s ease", transform:"translateY(6px)"
+  });
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>{ t.style.opacity="1"; t.style.transform="translateY(0)"; });
+  setTimeout(()=>{ t.style.opacity="0"; t.style.transform="translateY(6px)"; },1200);
+  setTimeout(()=>{ t.remove(); },1600);
+}
+
+/* Olaylar */
+document.getElementById("generate").addEventListener("click", buildOnce);
+document.getElementById("copy").addEventListener("click", copyOut);
+
+/* İlk yüklemede: günü bugüne ayarla, sezonu otomatik ata, otomatik üretimi dinle ve bir set yarat */
+(function init(){
+  const map=["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+  const name=map[new Date().getDay()];
+  for(const opt of dayEl.options){ if(opt.value===name){ dayEl.value=name; break; } }
+  // Sezonu otomatik ata
+  seasonEl.value = detectSeason();
+  // Otomatik üretim dinleyicileri
+  wireAutoBuild();
+  // İlk set
+  buildOnce();
+})();
+</script>
+</body>
+</html>
