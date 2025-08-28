@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>İpsala • Pazarkule Hikayeleri (v4)</title>
+<style>
+  :root { --bg:#0b0b0c; --card:#141418; --muted:#8b8b94; --text:#eaeaf0; --accent:#4cc3ff; --ok:#19d38a; --warn:#f5d567; --err:#ff6b7a; }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
+  .wrap{max-width:980px;margin:24px auto;padding:16px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 20px #0006;padding:16px}
+  .row{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:8px}
+  select,button{width:100%;padding:12px;border-radius:12px;border:1px solid #2a2a32;background:#0f0f13;color:#eaeaf0}
+  button.primary{background:var(--accent);border:0;color:#001018;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .hint{color:#a7a7b3;font-size:12px}
+  .error{background:#3a1014;border:1px solid #7a1f29;color:#ffc9cf;padding:10px;border-radius:10px;margin-top:10px}
+  .success{background:#0f2c1a;border:1px solid #195f39;color:#c9ffdc;padding:10px;border-radius:10px;margin-top:10px}
+  .section-title{font-weight:700;color:#cfd3ff;margin:8px 0 4px}
+
+  /* Mobile-friendly chips */
+  .chip-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px 0}
+  @media (min-width:560px){.chip-row{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  .chip{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 14px;border-radius:14px;border:1px solid #2a2a32;background:#0f0f13;color:#eaeaf0;font-weight:700;cursor:pointer;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .chip .dot{width:12px;height:12px;border-radius:999px;background:#2a2a32;box-shadow:0 0 0 2px #0b0b0c inset}
+  .chip.active{background:linear-gradient(180deg,#17202a,#0f151c);border-color:#3a4a5a;box-shadow:0 0 0 2px #0b0b0c inset}
+  .chip.active .dot{background:var(--ok)}
+
+  /* Canvas holder with loader overlay */
+  .canvas-wrap{position:relative;margin-top:14px}
+  canvas{width:100%;background:#000;border-radius:12px;display:block}
+  .loader{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(180deg, #0b0b0cb3, #0b0b0ccc);backdrop-filter:saturate(120%) blur(4px);border-radius:12px}
+  .loader.hidden{display:none}
+  .spin{width:48px;height:48px;border-radius:50%;border:4px solid #2a2a32;border-top-color:var(--accent);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .pulse{height:10px;width:160px;border-radius:999px;background:#222;overflow:hidden}
+  .pulse::before{content:"";display:block;height:100%;width:40%;background:linear-gradient(90deg, transparent, #3a3a3f, transparent);animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+
+  /* Mobile first tweaks */
+  @media (max-width: 768px){
+    .wrap{margin:8px auto;padding:10px}
+    .actions{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="section-title">Kapı</div>
+        <select id="gate" aria-label="Kapı seçimi">
+          <option value="ipsala">İpsala</option>
+          <option value="pazarkule">Pazarkule</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title">Görseller</div>
+    <div id="chipContainer" aria-live="polite"></div>
+
+    <div class="actions">
+      <button id="refreshBtn">Tümünü Yenile</button>
+      <button id="downloadBtn" disabled>PNG Olarak İndir</button>
+    </div>
+
+    <div id="msg" class="hint" style="margin-top:8px"></div>
+
+    <div class="canvas-wrap">
+      <canvas id="cnv"></canvas>
+      <!-- LOADING OVERLAY -->
+      <div id="loader" class="loader hidden" role="status" aria-live="assertive">
+        <div class="spin" aria-hidden="true"></div>
+        <div id="loaderText">Yükleniyor…</div>
+        <div class="pulse" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================= Config =================
+const SOURCES = {
+  ipsala: {
+    urls: [
+      "https://lh3.googleusercontent.com/d/1fwwmFufEMJl-QzUEzsUlGwNN42cpboac?t=1755590336917",
+      "https://lh3.googleusercontent.com/d/1Mms77ohqSCYBAohZd-LhJV0fPryLk_oV?t=1755590411754",
+      "https://mobesekamerasi.com/kameralar/ipsala2.jpg?ts=1753727561&t=1755590420226",
+      "https://lh3.googleusercontent.com/d/1xedIDApf2PZGi3VOaY8lBnyxBVwOfZ-x"
+    ],
+    labels: ["Giriş","Orta Alan","Çıkış","Tır Parkı"],
+    defaults: [true,true,true,false]
+  },
+  pazarkule: {
+    urls: [
+      "https://lh3.googleusercontent.com/d/1Rdv8mwuKoXLyavVKOXfDNM1onzgMbDHz",
+      "https://lh3.googleusercontent.com/d/1cukbjENpHiFD4r1xuK7xKPyhb0cOBWsE"
+    ],
+    labels: ["Giriş","Çıkış"],
+    defaults: [true,true]
+  }
+};
+
+// ================ Helpers & State ================
+const $ = sel => document.querySelector(sel);
+const cnv = $('#cnv');
+const ctx = cnv.getContext('2d');
+const msgBox = $('#msg');
+const loader = $('#loader');
+const loaderText = $('#loaderText');
+const FRAME = 6;          // dış ve aradaki boşluk
+const OUT_W = 1212;
+const PROXY = "https://images.weserv.nl/?url=";
+const proxify = (u, cb) => PROXY + encodeURIComponent(u) + "&cb=" + cb;
+
+function showMsg(html, type=''){
+  msgBox.innerHTML = html; msgBox.className = type ? type : 'hint';
+}
+function startLoading(text="Yükleniyor…"){
+  loaderText.textContent = text;
+  loader.classList.remove('hidden');
+  document.getElementById('refreshBtn').disabled = true;
+  document.getElementById('downloadBtn').disabled = true;
+}
+function stopLoading(){
+  loader.classList.add('hidden');
+  document.getElementById('refreshBtn').disabled = false;
+}
+
+function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn.apply(this,args), ms); }; }
+const debouncedMerge = debounce(()=> merge('Seçim değişti — Yükleniyor…'), 200);
+
+function buildChips(gate){
+  const cont = document.getElementById('chipContainer');
+  cont.innerHTML = "";
+  const cfg = SOURCES[gate];
+
+  const row = document.createElement('div');
+  row.className = 'chip-row';
+
+  cfg.urls.forEach((_, i) => {
+    const lbl = cfg.labels[i] || `Görsel ${i+1}`;
+    const on = !!cfg.defaults[i];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip' + (on? ' active' : '');
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.dataset.idx = String(i);
+    btn.innerHTML = `<span class="dot" aria-hidden="true"></span>${lbl}`;
+
+    btn.addEventListener('click', ()=>{
+      const active = btn.classList.toggle('active');
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      if (window.navigator && navigator.vibrate) { try{ navigator.vibrate(6); }catch(_e){} }
+      debouncedMerge();
+    }, { passive:true });
+
+    row.appendChild(btn);
+  });
+
+  cont.appendChild(row);
+}
+
+function currentGate(){ return document.getElementById('gate').value; }
+
+function loadImg(url, cbToken){
+  return new Promise(ok=>{
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+    img.onload = ()=> ok({ ok:true, img, url });
+    img.onerror = ()=> ok({ ok:false, img:null, url });
+    img.src = proxify(url, cbToken);
+  });
+}
+
+async function merge(autoText){
+  startLoading(autoText || "Yükleniyor…");
+  showMsg("Yükleniyor…");
+
+  const gate = currentGate();
+  const cfg = SOURCES[gate];
+  const selectedIdx = Array.from(document.querySelectorAll('.chip.active')).map(el=>parseInt(el.dataset.idx));
+  if (selectedIdx.length === 0){ showMsg("En az 1 görsel seçin.","error"); stopLoading(); return; }
+
+  const cbToken = Date.now().toString() + Math.random().toString(36).slice(2);
+  const urls = selectedIdx.map(i => cfg.urls[i]);
+
+  // İlerleme göstergesi (metin)
+  let done = 0;
+  loaderText.textContent = `Yükleniyor… (0/${urls.length})`;
+
+  const results = await Promise.all(urls.map(async (u)=>{
+    const r = await loadImg(u, cbToken);
+    done++; loaderText.textContent = `Yükleniyor… (${done}/${urls.length})`;
+    return r;
+  }));
+
+  const fixed = results.map(r => {
+    if (r.ok) return r;
+    const ph = document.createElement('canvas');
+    ph.width = 640; ph.height = 360;
+    const pctx = ph.getContext('2d');
+    pctx.fillStyle = '#1c1c22'; pctx.fillRect(0,0,ph.width,ph.height);
+    pctx.fillStyle = '#bbb'; pctx.font = 'bold 24px system-ui';
+    const txt = 'Yüklenemedi';
+    const mt = pctx.measureText(txt);
+    pctx.fillText(txt, (ph.width - mt.width)/2, (ph.height/2)+8);
+    const img = new Image();
+    img.src = ph.toDataURL('image/png');
+    return { ok:true, img, url: r.url };
+  });
+
+  const scaled = fixed.map(r=>{
+    const img = r.img;
+    const scale = (OUT_W - 2*FRAME) / img.width;
+    return { w: Math.round(img.width * scale), h: Math.round(img.height * scale), img };
+  });
+
+  const totalHeight = scaled.reduce((sum,s)=> sum + s.h, 0) + (scaled.length + 1) * FRAME;
+  cnv.width = OUT_W;
+  cnv.height = totalHeight;
+  const ctx = cnv.getContext('2d');
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0,0,OUT_W,totalHeight);
+
+  let y = FRAME;
+  for (const s of scaled){
+    const x = Math.floor((OUT_W - s.w)/2);
+    ctx.drawImage(s.img, x, y, s.w, s.h);
+    y += s.h + FRAME;
+  }
+
+  stopLoading();
+  showMsg(`Hazır! ${OUT_W}×${totalHeight} px (${scaled.length} görsel, kapı: ${gate})`, "success");
+  document.getElementById('downloadBtn').disabled = false;
+}
+
+function download(){
+  const gate = currentGate();
+  try {
+    const url = cnv.toDataURL('image/png');
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replaceAll(':','-').split('.')[0];
+    a.href = url; a.download = `birlesik_${gate}_${stamp}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) {
+    showMsg("İndirme engellendi ya da canvas CORS ile kirlenmiş olabilir.", "error");
+  }
+}
+
+// ================ Events ================
+const gateSel = document.getElementById('gate');
+
+gateSel.addEventListener('change', ()=>{
+  const gate = currentGate();
+  buildChips(gate);
+  const cap = gate === 'ipsala' ? 'İpsala' : 'Pazarkule';
+  merge(`${cap} — Yükleniyor…`);
+});
+
+document.getElementById('refreshBtn').addEventListener('click', ()=>{
+  merge('Yenileniyor…');
+});
+
+document.getElementById('downloadBtn').addEventListener('click', download);
+
+// ================ Init ================
+buildChips('ipsala');
+merge('İpsala — Yükleniyor…');
+</script>
+</body>
+</html>
