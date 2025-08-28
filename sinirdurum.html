@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sınır Kapısı Durumu — Saatlerde 0.5 adım</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#eef3f8; padding:16px; margin:0 }
+    .card { max-width:560px; margin:0 auto; background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,.08) }
+    h2 { margin:0 0 10px; text-align:center; color:#003366 }
+
+    .gate-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px }
+    .chip { appearance:none; border:1px solid #d4d8de; background:#f6f8fa; color:#0b2239; padding:12px 10px; border-radius:12px; font-weight:700; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; text-align:center; min-width:72px }
+    .chip[aria-pressed="true"]{ background:#e6f4ff; border-color:#9bd2ff; color:#003366; box-shadow:0 0 0 2px #e6f4ff inset }
+
+    .seg { display:grid; grid-template-columns:1fr 1fr; border:1px solid #d4d8de; border-radius:12px; overflow:hidden }
+    .seg button{ background:#f6f8fa; border:0; color:#0b2239; padding:10px; font-weight:800; cursor:pointer }
+    .seg button[aria-pressed="true"]{ background:#e6f4ff }
+
+    .actions{ display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px }
+    .btn{ padding:12px; border-radius:12px; border:1px solid #ccd3db; background:#4cc3ff; color:#001018; font-weight:800; cursor:pointer }
+    .btn:disabled{ opacity:.6; cursor:not-allowed }
+
+    #output{ display:block; text-align:center; margin-top:14px }
+    .hidden{ display:none }
+
+    @media (max-width:420px){ .gate-row{ grid-template-columns:repeat(2,1fr) } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h2>Sınır Kapısı Durumu</h2>
+
+  <!-- Gizli orijinal alanlar: PNG/metin bunlardan okunur -->
+  <select id="kapiname" class="hidden">
+    <option value="ipsala">İpsala</option>
+    <option value="kipi">Kipi</option>
+    <option value="pazarkule">Pazarkule</option>
+    <option value="kestanelik">Kestanelik</option>
+  </select>
+  <input id="waitTime" class="hidden" type="text" value="1" />
+
+  <!-- Kapılar: yan yana butonlar -->
+  <div class="gate-row" role="group" aria-label="Kapı seçimi">
+    <button type="button" class="chip gate" data-gate="ipsala" aria-pressed="true">İPSALA</button>
+    <button type="button" class="chip gate" data-gate="kipi" aria-pressed="false">KİPİ</button>
+    <button type="button" class="chip gate" data-gate="pazarkule" aria-pressed="false">PAZARKULE</button>
+    <button type="button" class="chip gate" data-gate="kestanelik" aria-pressed="false">KESTANELİK</button>
+  </div>
+
+  <!-- Saat/Dakika (Saat varsayılan) -->
+  <div class="seg" role="group" aria-label="Süre türü">
+    <button id="segHour" type="button" aria-pressed="true">Saat</button>
+    <button id="segMin"  type="button" aria-pressed="false">Dakika</button>
+  </div>
+
+  <!-- SAAT: 1 1.5 2 2.5 3 3.5 4 + Devamını Göster; devamı: 4.5 5 5.5 6 7 8 9 10 11 12 -->
+  <div id="hourChips" class="chips" role="group" aria-label="Saat seçenekleri">
+    <button type="button" class="chip h" data-hour="1" aria-pressed="true">1 sa</button>
+    <button type="button" class="chip h" data-hour="1.5">1,5 sa</button>
+    <button type="button" class="chip h" data-hour="2">2 sa</button>
+    <button type="button" class="chip h" data-hour="2.5">2,5 sa</button>
+    <button type="button" class="chip h" data-hour="3">3 sa</button>
+    <button type="button" class="chip h" data-hour="3.5">3,5 sa</button>
+    <button type="button" class="chip h" data-hour="4">4 sa</button>
+	<button type="button" class="chip h" data-hour="4.5">4,5 sa</button>
+    <button type="button" class="chip" id="moreHours">Devamını Göster</button>
+  </div>
+  <div id="hourChipsMore" class="chips hidden">
+    <button type="button" class="chip h" data-hour="5">5 sa</button>
+    <button type="button" class="chip h" data-hour="5.5">5,5 sa</button>
+    <button type="button" class="chip h" data-hour="6">6 sa</button>
+    <button type="button" class="chip h" data-hour="7">7 sa</button>
+    <button type="button" class="chip h" data-hour="8">8 sa</button>
+    <button type="button" class="chip h" data-hour="9">9 sa</button>
+    <button type="button" class="chip h" data-hour="10">10 sa</button>
+    <button type="button" class="chip h" data-hour="11">11 sa</button>
+    <button type="button" class="chip h" data-hour="12">12 sa</button>
+  </div>
+
+  <!-- DAKİKA: 15 30 45 -->
+  <div id="minChips" class="chips hidden" role="group" aria-label="Dakika seçenekleri">
+    <button type="button" class="chip m" data-min="15">15 dk</button>
+    <button type="button" class="chip m" data-min="30">30 dk</button>
+    <button type="button" class="chip m" data-min="45">45 dk</button>
+  </div>
+
+  <div class="actions">
+    <button id="dlBtn" class="btn" disabled>Instagram PNG</button>
+  </div>
+
+  <div id="output"></div>
+</div>
+
+<script>
+/***** — Orijinal PNG & METİN ÜRETİMİ (dokunulmadı) — *****/
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+const countryMap = { ipsala: "turkiye", kipi: "yunanistan", pazarkule: "turkiye", kestanelik: "yunanistan", kapikule: "turkiye", bgkapikule: "bulgaristan", hamzabeyli: "turkiye", lesovo: "bulgaristan", derekoy: "turkiye", tirnovacik: "bulgaristan" };
+const flagUrls = { turkiye: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/960px-Flag_of_Turkey.svg.png", yunanistan: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Flag_of_Greece.svg/320px-Flag_of_Greece.svg.png" };
+function fmtNow(){ const n=new Date(); const d=String(n.getDate()).padStart(2,'0'); const m=String(n.getMonth()+1).padStart(2,'0'); const y=n.getFullYear(); const h=String(n.getHours()).padStart(2,'0'); const mi=String(Math.floor(n.getMinutes()/5)*5).padStart(2,'0'); return `${d}.${m}.${y} ${h}:${mi}`; }
+function buildWaitText(){ const raw=document.getElementById('waitTime').value.trim(); const v=parseFloat(raw); const isMinute=v>=15; const isRange=raw.includes('-'); return isMinute ? (isRange? raw+" dakika" : `${Math.round(v)} dakika`) : (isRange? raw.replace('.', ',')+" saat" : `${v.toString().replace('.', ',')} saat`); }
+function generateOutput(){
+  const kapiname=document.getElementById('kapiname').value; const waitText=buildWaitText(); const time=fmtNow(); const instagram='@'+kapiname+'gecis';
+  const out=document.getElementById('output'); out.innerHTML=`<p><strong>${kapiname.toLocaleUpperCase('tr-TR')}</strong></p><p>Bekleme Süresi: ${waitText}</p><p><strong>Tarih: ${time}</strong></p><p><strong>${instagram}</strong></p>`;
+}
+function downloadPng(){
+  const kapiname=document.getElementById('kapiname').value; const waitRawStr=document.getElementById('waitTime').value.trim(); const waitRaw=parseFloat(waitRawStr); const isMinute=waitRaw>=15; const isRange=waitRawStr.includes('-');
+  const waitText = isMinute ? (isRange ? waitRawStr + ' dakika' : `${Math.round(parseFloat(waitRawStr))} dakika`) : (isRange ? waitRawStr.replace('.', ',') + ' saat' : `${parseFloat(waitRawStr).toString().replace('.', ',')} saat`);
+  const now=new Date(); const day=String(now.getDate()).padStart(2,'0'); const month=String(now.getMonth()+1).padStart(2,'0'); const year=now.getFullYear(); const hour=String(now.getHours()).padStart(2,'0'); const minute=String(Math.floor(now.getMinutes()/5)*5).padStart(2,'0'); const formattedTime=`${day}.${month}.${year} ${hour}:${minute}`;
+  const instagram='@'+kapiname+'gecis'; const country=countryMap[kapiname.toLowerCase()]; const flagUrl=flagUrls[country];
+  const canvas=document.createElement('canvas'); canvas.width=850; canvas.height=850; const ctx=canvas.getContext('2d'); ctx.fillStyle='#fdf8f4'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const flag=new Image(); flag.crossOrigin='anonymous'; flag.src=flagUrl; flag.onload=function(){
+    const spacing=60; const flagHeight=66; const titleHeight=48+48; const ovalHeight=90; const timeHeight=36; const instaHeight=26;
+    const totalHeight=flagHeight+spacing+titleHeight+spacing+ovalHeight+spacing+timeHeight+50+instaHeight; let baseY=(canvas.height-totalHeight)/2;
+    ctx.drawImage(flag,(canvas.width-100)/2,baseY,100,flagHeight); baseY+=flagHeight+spacing;
+    ctx.fillStyle='#000'; ctx.font='bold 48px Arial'; ctx.textAlign='center'; ctx.fillText(kapiname.toLocaleUpperCase('tr-TR'),425,baseY); baseY+=48; ctx.fillText('SINIR KAPISI',425,baseY); baseY+=spacing;
+    let bgColor='#38d02c'; if (!isMinute) { if (waitRaw >= 2.5) bgColor = '#f42617'; else if (waitRaw >= 1.5) bgColor = '#f8cf23'; }
+    ctx.fillStyle=bgColor; drawRoundedRect(ctx, 250, baseY, 350, 90, 40); ctx.fill(); ctx.fillStyle='#000'; ctx.font='bold 56px Arial'; ctx.fillText(waitText,425,baseY+90/2+20); baseY+=90+spacing;
+    ctx.font='bold 36px Arial'; ctx.fillText(formattedTime,425,baseY); baseY+=50; ctx.font='bold 26px Arial'; ctx.fillText(instagram,425,baseY);
+    const logoUrls = { ipsala: 'https://raw.githubusercontent.com/fistakoz/sinir-kapisi-durumu/refs/heads/main/ipsala.png', kipi: 'https://raw.githubusercontent.com/fistakoz/sinir-kapisi-durumu/refs/heads/main/kipi.png', kestanelik: 'https://raw.githubusercontent.com/fistakoz/sinir-kapisi-durumu/refs/heads/main/kestanelik.png', pazarkule: 'https://raw.githubusercontent.com/fistakoz/sinir-kapisi-durumu/refs/heads/main/pazarkule.png' };
+    const selectedGate=kapiname.toLowerCase(); const logoUrl=logoUrls[selectedGate] || null; function finalize(){ ctx.font='italic 18px Arial'; ctx.fillStyle='gray'; ctx.fillText('Süreler ortalama olarak belirtilmekte olup, resmi geçiş süreleri değildir.', canvas.width/2, canvas.height-20); const filenameWait=waitText.replace(/\s/g,'').replace(',',''); const filename=`${kapiname}_${filenameWait}_${day}-${month}-${year}_${hour}-${minute}.png`; const a=document.createElement('a'); a.download=filename; a.href=canvas.toDataURL('image/png'); a.click(); }
+    if (logoUrl){ const gateLogo=new Image(); gateLogo.crossOrigin='anonymous'; gateLogo.onload=function(){ const size=180; const y=baseY+40; ctx.globalAlpha=0.25; ctx.drawImage(gateLogo,(canvas.width-size)/2,y,size,size); ctx.globalAlpha=1; finalize(); }; gateLogo.onerror=finalize; gateLogo.src=logoUrl; } else { finalize(); }
+  };
+}
+/***** — /Orijinal JS SON — *****/
+
+/***** — Seçim Davranışı — *****/
+function selectOnly(selector, target){ document.querySelectorAll(selector).forEach(el=>el.setAttribute('aria-pressed','false')); target.setAttribute('aria-pressed','true'); }
+
+// Kapılar
+Array.from(document.querySelectorAll('.gate')).forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    selectOnly('.gate', btn);
+    document.getElementById('kapiname').value = btn.dataset.gate;
+    generateOutput(); document.getElementById('dlBtn').disabled=false;
+  }, {passive:true});
+});
+
+// Segmentler
+const segHour=document.getElementById('segHour');
+const segMin=document.getElementById('segMin');
+const hourChips=document.getElementById('hourChips');
+const hourChipsMore=document.getElementById('hourChipsMore');
+const moreBtn=document.getElementById('moreHours');
+const minChips=document.getElementById('minChips');
+
+segHour.addEventListener('click', ()=>{
+  segHour.setAttribute('aria-pressed','true'); segMin.setAttribute('aria-pressed','false');
+  hourChips.classList.remove('hidden'); minChips.classList.add('hidden');
+  document.getElementById('waitTime').value='1';
+  generateOutput(); document.getElementById('dlBtn').disabled=false;
+});
+segMin.addEventListener('click', ()=>{
+  segHour.setAttribute('aria-pressed','false'); segMin.setAttribute('aria-pressed','true');
+  hourChips.classList.add('hidden'); hourChipsMore.classList.add('hidden'); moreBtn.classList.remove('hidden');
+  minChips.classList.remove('hidden');
+  document.getElementById('waitTime').value='15';
+  generateOutput(); document.getElementById('dlBtn').disabled=false;
+});
+
+// Saat çipleri 1..4 (ve 1.5,2.5,3.5 dahil)
+Array.from(document.querySelectorAll('#hourChips .h')).forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    selectOnly('#hourChips .h, #hourChipsMore .h', ch);
+    document.getElementById('waitTime').value = ch.dataset.hour; // değer noktayla kaydedilir (1.5)
+    generateOutput(); document.getElementById('dlBtn').disabled=false;
+  }, {passive:true});
+});
+
+// Devamını Göster
+moreBtn.addEventListener('click', ()=>{ hourChipsMore.classList.remove('hidden'); moreBtn.classList.add('hidden'); });
+
+// Saat çipleri 4.5..12
+Array.from(document.querySelectorAll('#hourChipsMore .h')).forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    selectOnly('#hourChips .h, #hourChipsMore .h', ch);
+    document.getElementById('waitTime').value = ch.dataset.hour;
+    generateOutput(); document.getElementById('dlBtn').disabled=false;
+  }, {passive:true});
+});
+
+// Dakika çipleri 15/30/45
+Array.from(document.querySelectorAll('#minChips .m')).forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    selectOnly('#minChips .m', ch);
+    document.getElementById('waitTime').value = ch.dataset.min;
+    generateOutput(); document.getElementById('dlBtn').disabled=false;
+  }, {passive:true});
+});
+
+// Başlangıç: Saat açık + 1 saat + İpsala
+document.getElementById('kapiname').value='ipsala';
+document.getElementById('waitTime').value='1';
+generateOutput();
+document.getElementById('dlBtn').disabled=false;
+
+// PNG indirme
+const dlBtn=document.getElementById('dlBtn');
+dlBtn.addEventListener('click', downloadPng);
+</script>
+</body>
+</html>
