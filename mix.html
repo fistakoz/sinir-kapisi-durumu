@@ -220,11 +220,12 @@ function downloadPng(){
     ctx.font='bold 48px Arial';
     ctx.textAlign='center';
     let gateTitle = kapiname.toLocaleUpperCase('tr-TR');
-	  const specialCases = ['kipi', 'kastanies'];
+	const specialCases = ['kipi', 'kastanies'];
 
-	  if (specialCases.includes(kapiname.toLowerCase())) {
-		  gateTitle = kapiname.toUpperCase(); // düz İngilizce büyütme
-	  }
+	if (specialCases.includes(kapiname.toLowerCase())) {
+		gateTitle = kapiname.toUpperCase(); // düz İngilizce büyütme
+	}
+	ctx.fillText(gateTitle, 425, baseY);  
     baseY+=48;
     ctx.fillText('SINIR KAPISI',425,baseY);
     baseY+=spacing;
